@@ -6,6 +6,7 @@ Features:
   - Enforced JSON output via system instruction
   - Retry-on-JSONDecodeError (up to 3 attempts with temperature bump)
   - SQLite response cache keyed by SHA-256 of (model + system + prompt)
+  - Function Calling support for agentic tool use
 """
 
 import asyncio
@@ -13,7 +14,7 @@ import hashlib
 import json
 import logging
 import os
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from google import genai
 from google.genai import types
@@ -39,6 +40,7 @@ _GENERATION_CONFIG_BASE = {
 class GeminiClient:
     """
     Singleton-style client. Initialise once at app startup and inject everywhere.
+    Now uses the new google-genai SDK with gemini-2.0-flash.
     """
 
     def __init__(self, api_key: Optional[str] = None, model_name: str = _DEFAULT_MODEL):
@@ -53,7 +55,7 @@ class GeminiClient:
         logger.info(f"GeminiClient initialised with model: {model_name} (concurrency: 1)")
 
     # ------------------------------------------------------------------
-    # Public API
+    # Public API: JSON generation (used by all agents)
     # ------------------------------------------------------------------
 
     async def generate_json(
@@ -83,6 +85,192 @@ class GeminiClient:
 
         return result
 
+    # ------------------------------------------------------------------
+    # Public API: Function Calling (agentic tool use)
+    # ------------------------------------------------------------------
+
+    async def generate_with_tools(
+        self,
+        prompt: str,
+        system_instruction: str,
+        tool_declarations: list[dict],
+        tool_handlers: dict[str, Callable],
+        *,
+        max_tool_rounds: int = 5,
+        temperature: float = 0.2,
+    ) -> dict[str, Any]:
+        """
+        Agentic function calling: Gemini decides which tools to call,
+        we execute them, feed results back, and Gemini produces final analysis.
+
+        Args:
+            prompt: The user's request
+            system_instruction: System prompt
+            tool_declarations: List of function declaration dicts
+            tool_handlers: Map of function_name -> async callable
+            max_tool_rounds: Max back-and-forth rounds with Gemini
+            temperature: Generation temperature
+
+        Returns:
+            dict with 'analysis' (final JSON) and 'tool_trace' (list of tool calls made)
+        """
+        # Build tool declarations for the SDK
+        function_declarations = []
+        for decl in tool_declarations:
+            # Build properties schema
+            props = {}
+            required = []
+            for param_name, param_info in decl.get("parameters", {}).items():
+                props[param_name] = types.Schema(
+                    type=types.Type.STRING,
+                    description=param_info.get("description", ""),
+                )
+                if param_info.get("required", False):
+                    required.append(param_name)
+
+            function_declarations.append(types.FunctionDeclaration(
+                name=decl["name"],
+                description=decl["description"],
+                parameters=types.Schema(
+                    type=types.Type.OBJECT,
+                    properties=props,
+                    required=required if required else None,
+                ),
+            ))
+
+        tools = [types.Tool(function_declarations=function_declarations)]
+
+        # Initial request with tools
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction + (
+                "\n\nIMPORTANT: Use the provided tools to gather data before making recommendations. "
+                "Call the relevant tools first, then provide your final analysis as valid JSON."
+            ),
+            tools=tools,
+            temperature=temperature,
+        )
+
+        contents = [types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=prompt)]
+        )]
+
+        tool_trace = []  # Track which tools Gemini called
+
+        loop = asyncio.get_event_loop()
+
+        for round_num in range(max_tool_rounds):
+            # Call Gemini
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=contents,
+                    config=config,
+                )
+            )
+
+            # Check if Gemini wants to call a function
+            candidate = response.candidates[0]
+            parts = candidate.content.parts
+
+            function_calls = [p for p in parts if p.function_call is not None]
+
+            if not function_calls:
+                # No more tool calls — Gemini is giving its final answer
+                final_text = "".join(p.text for p in parts if p.text)
+                logger.info(
+                    "Function calling complete: %d tools used in %d rounds",
+                    len(tool_trace), round_num + 1,
+                )
+                break
+
+            # Execute each function call
+            function_responses = []
+            for part in function_calls:
+                fn_call = part.function_call
+                fn_name = fn_call.name
+                fn_args = dict(fn_call.args) if fn_call.args else {}
+
+                logger.info("Gemini → tool call: %s(%s)", fn_name, fn_args)
+
+                # Execute the handler
+                handler = tool_handlers.get(fn_name)
+                if handler:
+                    try:
+                        result = await handler(**fn_args)
+                        tool_trace.append({
+                            "tool": fn_name,
+                            "args": fn_args,
+                            "result_summary": str(result)[:200],
+                            "status": "success",
+                        })
+                    except Exception as e:
+                        logger.warning("Tool %s failed: %s", fn_name, e)
+                        result = {"error": str(e)}
+                        tool_trace.append({
+                            "tool": fn_name,
+                            "args": fn_args,
+                            "status": "error",
+                            "error": str(e),
+                        })
+                else:
+                    result = {"error": f"Unknown tool: {fn_name}"}
+                    tool_trace.append({
+                        "tool": fn_name,
+                        "args": fn_args,
+                        "status": "not_found",
+                    })
+
+                function_responses.append(types.Part.from_function_response(
+                    name=fn_name,
+                    response={"result": result},
+                ))
+
+            # Add Gemini's function call + our responses to conversation
+            contents.append(candidate.content)
+            contents.append(types.Content(
+                role="user",
+                parts=function_responses,
+            ))
+        else:
+            # Hit max rounds without a final answer
+            final_text = "{}"
+            logger.warning("Function calling hit max rounds (%d)", max_tool_rounds)
+
+        # Parse the final JSON response
+        try:
+            analysis = self._parse_json(final_text)
+        except (json.JSONDecodeError, ValueError):
+            logger.warning("Function calling final response not JSON, retrying with JSON enforcement")
+            # One more call asking for JSON specifically
+            contents.append(types.Content(
+                role="user",
+                parts=[types.Part.from_text(
+                    text="Now provide your final analysis as a valid JSON object. No markdown, no fences."
+                )]
+            ))
+            json_config = types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=temperature,
+                response_mime_type="application/json",
+            )
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=contents,
+                    config=json_config,
+                )
+            )
+            final_text = response.text
+            analysis = self._parse_json(final_text)
+
+        return {
+            "analysis": analysis,
+            "tool_trace": tool_trace,
+        }
+
     def set_db(self, db) -> None:
         """Inject the DB instance after startup so caching works."""
         self._db = db
@@ -97,7 +285,7 @@ class GeminiClient:
         system_instruction: str,
         base_temperature: Optional[float],
     ) -> dict[str, Any]:
-        temperature = base_temperature or _GENERATION_CONFIG_BASE["temperature"]
+        temperature = base_temperature or 0.2
         last_error: Optional[Exception] = None
         current_model = self.model_name
         used_fallback = False

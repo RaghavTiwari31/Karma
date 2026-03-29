@@ -16,9 +16,8 @@ export default function WasteCalendar() {
 
   const handleRefresh = () => {
     setLoading(true);
-    api.post('/api/waste-calendar/refresh').then(res => {
-      setData(res.data.data);
-      setLoading(false);
+    api.post('/api/waste-calendar/refresh').then(() => {
+      fetchCalendar();
     });
   };
 

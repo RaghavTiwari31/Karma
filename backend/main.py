@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -1059,6 +1059,120 @@ async def karma_debit(req: KarmaScoreAdjustRequest) -> dict[str, Any]:
         agent="KarmaScoreEngine",
         latency_ms=round((time.time() - start) * 1000),
     )
+
+
+# ---------------------------------------------------------------------------
+# Slack Interactive Endpoint (handles button clicks from Slack)
+# ---------------------------------------------------------------------------
+
+import json as _json
+import httpx
+
+@app.post("/api/slack/interact", tags=["Slack"])
+async def slack_interact(request: Request) -> dict:
+    """
+    Handles interactive button clicks from Slack.
+    Slack sends form-encoded data with a 'payload' field containing JSON.
+    """
+    form = await request.form()
+    raw_payload = form.get("payload", "{}")
+    try:
+        payload = _json.loads(raw_payload)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid Slack payload")
+
+    # Extract the action clicked
+    actions = payload.get("actions", [])
+    if not actions:
+        return {"text": "No action received."}
+
+    action = actions[0]
+    action_id = action.get("action_id", "")  # e.g. "approve_full", "approve_reduced", "switch_vendor"
+    action_value = action.get("value", action_id)
+    user = payload.get("user", {}).get("name", "slack_user")
+    response_url = payload.get("response_url", "")
+
+    logger.info("Slack interaction: user=%s action=%s", user, action_id)
+
+    # Map Slack action to KARMA decision
+    decision_map = {
+        "approve_full": {
+            "message": f"\u2705 *{user}* approved at full amount. No changes made.",
+            "savings": 0,
+        },
+        "approve_reduced": {
+            "message": f"\u2705 *{user}* approved with reduced seats! KARMA is executing the seat reduction now.",
+            "savings": 500000,
+        },
+        "switch_vendor": {
+            "message": f"\U0001f504 *{user}* initiated vendor switch! KARMA has notified procurement to begin RFQ process.",
+            "savings": 750000,
+        },
+    }
+
+    result = decision_map.get(action_id, {
+        "message": f"\u2705 *{user}* took action: {action_id}",
+        "savings": 0,
+    })
+
+    # Trigger the Ghost Approver decide flow
+    from backend.agents.base_agent import KARMAEvent
+    try:
+        event = KARMAEvent(
+            event_id=f"slack_{uuid.uuid4().hex[:8]}",
+            event_type="decide",
+            source="slack",
+            payload={
+                "vendor": "Salesforce",
+                "category": "CRM",
+                "chosen_option_id": action_id,
+                "savings_inr": result["savings"],
+                "approved_by": user,
+            },
+            context={"channel": "slack"},
+            timestamp=str(time.time()),
+        )
+        action_result = await state.orchestrator.dispatch(event)
+        if action_result and action_result.payload.get("execution_receipt"):
+            receipt = action_result.payload["execution_receipt"]
+            result["message"] += f"\n\n*Execution Receipt:* `{receipt.get('receipt_id', 'N/A')}`"
+            result["message"] += f"\n*Status:* {receipt.get('status', 'completed')}"
+    except Exception as e:
+        logger.warning("Slack decide flow failed (non-fatal): %s", e)
+
+    # If we got a waste calendar event for this vendor, mark it resolved
+    try:
+        if action_id in ("approve_reduced", "switch_vendor"):
+            waste_events = await state.db.get_waste_events(status="open")
+            for we in waste_events:
+                if "salesforce" in we.get("vendor", "").lower():
+                    await state.db.update_waste_event_status(we["id"], "done")
+                    result["message"] += "\n\n:calendar: Waste Calendar event marked as resolved."
+                    break
+    except Exception as e:
+        logger.warning("Waste calendar update failed (non-fatal): %s", e)
+
+    # Respond to Slack via response_url (updates the original message)
+    reply_blocks = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": result["message"]}},
+        {"type": "context", "elements": [
+            {"type": "mrkdwn", "text": f"Decision made via KARMA Slack integration | {user}"}
+        ]},
+    ]
+
+    if response_url:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(response_url, json={
+                    "replace_original": False,
+                    "text": result["message"],
+                    "blocks": reply_blocks,
+                })
+        except Exception as e:
+            logger.warning("Failed to respond to Slack: %s", e)
+
+    # Return immediate 200 to Slack (must respond within 3 seconds)
+    return {"text": result["message"]}
 
 
 # ---------------------------------------------------------------------------
