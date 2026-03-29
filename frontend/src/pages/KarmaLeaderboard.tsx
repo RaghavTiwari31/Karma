@@ -26,15 +26,30 @@ export default function KarmaLeaderboard() {
   const handleTeamClick = (team_id: string) => {
     setSelectedTeam(team_id);
     api.get(`/api/karma-scores/${team_id}`).then(res => {
-      // Create faux chart data by walking backwards from current score, applying random var up to delta limit
       const st = res.data.data;
-      const tData = [];
-      let cur = st.score;
-      for(let i=7; i>=0; i--) {
-         tData.push({ day: i === 0 ? 'Today' : `-${i}d`, score: parseFloat(cur.toFixed(1)) });
-         cur = cur - (Math.random() * 3 - 1); 
+      const history = st.history || [];
+
+      // Use REAL history if available (multiple snapshots exist)
+      if (history.length > 1) {
+        const tData = history.slice(0, 8).reverse().map((h: any, i: number) => ({
+          day: i === history.length - 1 ? 'Today' : h.period_start?.slice(5) || `-${history.length - 1 - i}d`,
+          score: parseFloat(Number(h.score).toFixed(1)),
+        }));
+        setTeamHistory(tData);
+      } else {
+        // Deterministic trajectory from current score using real delta (no randomness)
+        const delta = st.delta || 0;
+        const tData = [];
+        let cur = st.score;
+        for (let i = 0; i <= 7; i++) {
+          tData.push({
+            day: i === 7 ? 'Today' : i === 0 ? 'Start' : `Day ${i}`,
+            score: parseFloat(cur.toFixed(1)),
+          });
+          cur = cur + (delta / 7); // spread the delta linearly across the period
+        }
+        setTeamHistory(tData);
       }
-      setTeamHistory(tData.reverse());
     });
   };
 

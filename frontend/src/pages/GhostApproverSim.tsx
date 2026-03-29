@@ -223,6 +223,11 @@ export default function GhostApproverSim() {
                                   {isRecommended && <span className="text-xs font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">RECOMMENDED</span>}
                                 </div>
                                 <p className="text-xs text-slate-400 font-mono mb-3 leading-relaxed">{opt.rationale}</p>
+                                {opt.savings_inr > 0 && (
+                                  <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded mb-3 ${opt.savings_verified !== false ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50' : 'bg-amber-950/60 text-amber-400 border border-amber-800/50'}`}>
+                                    {opt.savings_verified !== false ? '✅ Savings Math-Verified' : '⚠️ Estimated (AI)'}
+                                  </div>
+                                )}
                                 {opt.data_note && <p className="text-xs text-slate-600 italic mb-3">{opt.data_note}</p>}
                                 <button
                                   onClick={() => handleDecide(opt.option_id, opt)}

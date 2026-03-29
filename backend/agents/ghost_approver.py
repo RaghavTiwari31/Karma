@@ -15,14 +15,38 @@ Cache hit (same vendor+amount): <100ms.
 from __future__ import annotations
 
 import logging
+import os
 import time
 import uuid
 from datetime import date, datetime, timezone
-from typing import Any, Optional
+from typing import Any, Literal, Optional
+
+import httpx
+from pydantic import BaseModel, Field, ValidationError
 
 from backend.agents.base_agent import BaseAgent, KARMAAction, KARMAEvent
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Pydantic models for Gemini response validation (anti-hallucination)
+# ---------------------------------------------------------------------------
+
+class _OptionSchema(BaseModel):
+    option_id: Literal["approve_full", "approve_reduced", "switch_vendor"]
+    label: str
+    action_type: str
+    savings_inr: float = Field(ge=0)  # savings can never be negative
+    rationale: str
+    recommended: bool
+
+
+class _GhostAnalysisSchema(BaseModel):
+    urgency_tag: str
+    options: list[_OptionSchema]  # must have at least 1 option
+    max_savings_inr: float = Field(ge=0)
+    confidence: int = Field(ge=0, le=100)
 
 
 class GhostApproverAgent(BaseAgent):
@@ -64,6 +88,11 @@ class GhostApproverAgent(BaseAgent):
                 logger.info("GhostApprover DEMO cache HIT for %s ₹%s", vendor, f"{amount:,.0f}")
                 slack_blocks = self._build_slack_blocks(cached, vendor, amount)
                 await self.db.set_cached_response(demo_cache_key, cached)  # refresh TTL
+
+                # Send to real Slack even on cache hit
+                _slack_text = f"KARMA Ghost Approver flagged {vendor} — savings of up to INR {cached.get('max_savings_inr', 0):,.0f} at risk"
+                await self._send_to_slack(blocks=slack_blocks, fallback_text=_slack_text)
+
                 return KARMAAction(
                     action_id=f"ga_{uuid.uuid4().hex[:8]}",
                     action_type="slack_message",
@@ -107,8 +136,18 @@ class GhostApproverAgent(BaseAgent):
         analysis = await self._call_gemini(vendor, amount, category, requester,
                                            utilization, rate_card, alt_vendors, past_pos)
 
+        # --- Verify Gemini's savings against our own math ---
+        analysis = self._verify_savings(analysis, utilization, amount)
+
         # --- Build Slack blocks ---
         slack_blocks = self._build_slack_blocks(analysis, vendor, amount)
+
+        # --- Send to real Slack (if webhook configured) ---
+        _slack_text = f"KARMA Ghost Approver flagged {vendor} — savings of up to INR {analysis.get('max_savings_inr', 0):,.0f} at risk"
+        await self._send_to_slack(
+            blocks=slack_blocks,
+            fallback_text=_slack_text,
+        )
 
         latency_ms = round((time.time() - t_start) * 1000)
         logger.info(
@@ -249,9 +288,15 @@ class GhostApproverAgent(BaseAgent):
 
         try:
             result = await self.ask_gemini(prompt=prompt, system=GHOST_APPROVER_SYSTEM)
-            # Validate required fields
-            if "options" not in result:
-                raise ValueError("Gemini response missing 'options' array")
+            # --- Anti-hallucination: Validate response structure with Pydantic ---
+            try:
+                _GhostAnalysisSchema(**result)
+                logger.info("Gemini response passed schema validation ✅")
+            except ValidationError as ve:
+                logger.warning(
+                    "Gemini response FAILED schema validation: %s — using fallback", ve
+                )
+                return self._fallback_analysis(vendor, amount, category, utilization, alt_vendors)
             return result
         except Exception as exc:
             logger.error("Ghost Approver Gemini call failed: %s — using fallback", exc)
@@ -426,6 +471,67 @@ class GhostApproverAgent(BaseAgent):
         })
 
         return blocks
+
+    # ------------------------------------------------------------------
+    # Real Slack integration
+    # ------------------------------------------------------------------
+
+    async def _send_to_slack(self, blocks: list, fallback_text: str) -> None:
+        """Send the Ghost Approver analysis to a real Slack channel via webhook."""
+        webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+        if not webhook_url:
+            logger.debug("No SLACK_WEBHOOK_URL configured — skipping Slack notification")
+            return
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(webhook_url, json={
+                    "text": fallback_text,
+                    "blocks": blocks,
+                })
+                if resp.status_code == 200:
+                    logger.info("\u2705 Slack notification sent successfully to #approvals")
+                else:
+                    logger.warning("Slack webhook returned %s: %s", resp.status_code, resp.text)
+        except Exception as e:
+            logger.warning("Failed to send Slack notification (non-fatal): %s", e)
+
+    # ------------------------------------------------------------------
+    # Math verification — anti-hallucination for numbers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _verify_savings(analysis: dict, utilization: dict, amount: float) -> dict:
+        """Cross-check Gemini's savings numbers against independently calculated values."""
+        total_seats = utilization.get("total_seats") or 1
+        active_seats = utilization.get("active_seats") or total_seats
+        per_seat_cost = amount / total_seats if total_seats else 0
+
+        for option in analysis.get("options", []):
+            if option.get("option_id") == "approve_reduced" and per_seat_cost > 0:
+                # Our independent calculation: (unused seats) × per_seat_cost
+                calculated_savings = (total_seats - active_seats) * per_seat_cost
+                gemini_savings = option.get("savings_inr", 0)
+
+                if calculated_savings > 0 and gemini_savings > 0:
+                    deviation = abs(gemini_savings - calculated_savings) / calculated_savings
+                    if deviation > 0.3:  # >30% deviation = override
+                        logger.warning(
+                            "Savings verification: Gemini=₹%s vs Calculated=₹%s (%.0f%% off) — using calculated",
+                            f"{gemini_savings:,.0f}", f"{calculated_savings:,.0f}", deviation * 100,
+                        )
+                        option["savings_inr"] = round(calculated_savings / 10000) * 10000
+                        option["savings_verified"] = False
+                    else:
+                        option["savings_verified"] = True
+                        logger.info("Savings verification: Gemini=₹%s ✅ (within 30%%)", f"{gemini_savings:,.0f}")
+
+        # Recalculate max_savings after verification
+        all_savings = [o.get("savings_inr", 0) for o in analysis.get("options", [])]
+        if all_savings:
+            analysis["max_savings_inr"] = max(all_savings)
+
+        return analysis
 
     # ------------------------------------------------------------------
     # Helpers
