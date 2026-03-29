@@ -1,0 +1,76 @@
+{
+  "daily_spend_by_service": [
+    {"date": "2026-03-22", "service": "EC2",         "spend_inr": 4200,  "region": "ap-south-1"},
+    {"date": "2026-03-22", "service": "RDS",         "spend_inr": 1800,  "region": "ap-south-1"},
+    {"date": "2026-03-22", "service": "S3",          "spend_inr": 620,   "region": "ap-south-1"},
+    {"date": "2026-03-22", "service": "Lambda",      "spend_inr": 180,   "region": "ap-south-1"},
+    {"date": "2026-03-22", "service": "CloudFront",  "spend_inr": 290,   "region": "global"},
+    {"date": "2026-03-21", "service": "EC2",         "spend_inr": 4350,  "region": "ap-south-1"},
+    {"date": "2026-03-21", "service": "RDS",         "spend_inr": 1750,  "region": "ap-south-1"},
+    {"date": "2026-03-21", "service": "S3",          "spend_inr": 610,   "region": "ap-south-1"},
+    {"date": "2026-03-20", "service": "EC2",         "spend_inr": 4100,  "region": "ap-south-1"},
+    {"date": "2026-03-20", "service": "RDS",         "spend_inr": 1820,  "region": "ap-south-1"},
+    {"date": "2026-03-19", "service": "EC2",         "spend_inr": 5800,  "region": "ap-south-1", "anomaly": true, "note": "Dev team load test — unplanned spot instance surge"},
+    {"date": "2026-03-19", "service": "RDS",         "spend_inr": 1790,  "region": "ap-south-1"},
+    {"date": "2026-03-18", "service": "EC2",         "spend_inr": 4050,  "region": "ap-south-1"},
+    {"date": "2026-03-18", "service": "RDS",         "spend_inr": 1760,  "region": "ap-south-1"}
+  ],
+  "reserved_instances": [
+    {
+      "ri_id": "ri-0a1b2c3d4e5f6g7h",
+      "instance_type": "m5.xlarge",
+      "region": "ap-south-1",
+      "count": 20,
+      "utilized": 16,
+      "utilization_pct": 80,
+      "annual_commitment_inr": 480000,
+      "expiry_date": "2026-04-28",
+      "savings_vs_on_demand_inr": 192000
+    },
+    {
+      "ri_id": "ri-1b2c3d4e5f6g7h8i",
+      "instance_type": "r5.large",
+      "region": "ap-south-1",
+      "count": 20,
+      "utilized": 15,
+      "utilization_pct": 75,
+      "annual_commitment_inr": 480000,
+      "expiry_date": "2026-04-28",
+      "savings_vs_on_demand_inr": 180000
+    }
+  ],
+  "cost_anomalies": [
+    {
+      "date": "2026-03-19",
+      "service": "EC2",
+      "expected_inr": 4200,
+      "actual_inr": 5800,
+      "delta_inr": 1600,
+      "reason": "Unplanned load test — dev team spun up 14 m5.large spot instances for 18 hours without RI coverage",
+      "ghost_approver_fired": false,
+      "preventable": true
+    }
+  ],
+  "rightsizing_recommendations": [
+    {
+      "instance_id": "i-0a1b2c3d",
+      "current_type": "m5.xlarge",
+      "recommended_type": "m5.large",
+      "avg_cpu_pct": 22,
+      "avg_mem_pct": 31,
+      "monthly_saving_inr": 3800,
+      "annual_saving_inr": 45600,
+      "confidence": 87
+    },
+    {
+      "instance_id": "i-1b2c3d4e",
+      "current_type": "r5.large",
+      "recommended_type": "t3.medium",
+      "avg_cpu_pct": 18,
+      "avg_mem_pct": 28,
+      "monthly_saving_inr": 2200,
+      "annual_saving_inr": 26400,
+      "confidence": 79
+    }
+  ]
+}

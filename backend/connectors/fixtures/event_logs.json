@@ -1,0 +1,119 @@
+[
+  {
+    "scenario_id": "cloud_overrun_q1_2026",
+    "name": "AWS Production Overrun — Q1 2026",
+    "description": "Engineering team over-provisioned cloud resources for a campaign launch, leading to ₹8.7L unplanned spend in 6 weeks.",
+    "total_overrun_inr": 870000,
+    "team": "Engineering & Procurement",
+    "period": "Jan–Feb 2026",
+    "events": [
+      {
+        "timestamp": "2026-01-06T09:15:00Z",
+        "actor": "Engineering Lead",
+        "action": "Provisioned 12× m5.2xlarge instances for campaign traffic spike",
+        "context_visibility": "blind",
+        "context_available": ["Jira ticket approved", "Sprint plan"],
+        "context_missing": ["Reserved Instance alternatives", "current RI utilization", "cost forecast"],
+        "amount_inr": -120000,
+        "note": "No approval gate for cloud provisioning above ₹50,000"
+      },
+      {
+        "timestamp": "2026-01-08T14:30:00Z",
+        "actor": "Engineering Lead",
+        "action": "Added 4× additional r5.xlarge instances after initial load test showed memory pressure",
+        "context_visibility": "blind",
+        "context_missing": ["AWS Compute Optimizer recommendations", "cost projections"],
+        "amount_inr": -55000,
+        "note": "Incremental provisioning — no budget gate triggered because each request was under ₹75k"
+      },
+      {
+        "timestamp": "2026-01-15T10:00:00Z",
+        "actor": "Finance Analyst",
+        "action": "Reviewed monthly cloud bill — noted 340% spike vs December baseline",
+        "context_visibility": "partial",
+        "context_available": ["AWS cost explorer report"],
+        "context_missing": ["Which team provisioned what", "business justification"],
+        "amount_inr": 0,
+        "note": "Flagged to manager but no action taken — assumed campaign-related"
+      },
+      {
+        "timestamp": "2026-01-20T11:45:00Z",
+        "actor": "Engineering Lead",
+        "action": "Campaign ended — forgot to scale down instances",
+        "context_visibility": "blind",
+        "context_missing": ["Automated scale-down policy", "cost monitoring alert"],
+        "amount_inr": -280000,
+        "note": "Instances ran at near-zero utilization for 18 days"
+      },
+      {
+        "timestamp": "2026-02-03T09:00:00Z",
+        "actor": "Infrastructure Manager",
+        "action": "Discovered idle instances during routine audit — terminated all 16 instances",
+        "context_visibility": "informed",
+        "context_available": ["CloudWatch metrics", "cost explorer"],
+        "context_missing": [],
+        "amount_inr": 415000,
+        "note": "Corrective action taken — but ₹4.15L already spent needlessly"
+      }
+    ]
+  },
+  {
+    "scenario_id": "saas_duplicate_q1_2026",
+    "name": "SaaS Duplicate Subscriptions — Procurement vs Shadow IT",
+    "description": "Two separate teams purchased overlapping project management tools without visibility into existing enterprise licenses, resulting in ₹11.2L duplicate spend.",
+    "total_overrun_inr": 1120000,
+    "team": "Procurement & Product",
+    "period": "Oct 2025–Jan 2026",
+    "events": [
+      {
+        "timestamp": "2025-10-12T10:00:00Z",
+        "actor": "Procurement Manager",
+        "action": "Renewed enterprise Jira license — 150 seats at ₹4,800/seat/year",
+        "context_visibility": "informed",
+        "context_available": ["Utilization report (78%)", "rate card"],
+        "context_missing": [],
+        "amount_inr": -720000,
+        "note": "Legitimate renewal — proper process followed"
+      },
+      {
+        "timestamp": "2025-11-05T16:00:00Z",
+        "actor": "Product Director",
+        "action": "Purchased Linear subscription for product team — 45 seats, ₹3,200/seat/year",
+        "context_visibility": "blind",
+        "context_missing": ["Existing Jira seat availability", "IT software register"],
+        "amount_inr": -144000,
+        "note": "No IT approval gate — P-Card purchase under ₹2L limit — not visible to procurement"
+      },
+      {
+        "timestamp": "2025-11-18T11:30:00Z",
+        "actor": "Engineering Manager",
+        "action": "Onboarded design team to Monday.com — 30 seats, ₹4,100/seat/year",
+        "context_visibility": "partial",
+        "context_available": ["Budget approval from CFO"],
+        "context_missing": ["Jira project management features available", "Linear already purchased for product team"],
+        "amount_inr": -123000,
+        "note": "CFO approved without checking IT software register — register not maintained in real time"
+      },
+      {
+        "timestamp": "2025-12-10T09:15:00Z",
+        "actor": "IT Manager",
+        "action": "Annual software audit — discovered 3 overlapping project management tools",
+        "context_visibility": "informed",
+        "context_available": ["All subscription receipts", "actual usage metrics"],
+        "context_missing": [],
+        "amount_inr": 0,
+        "note": "Audit triggered after IT budget review. Linear at 12% utilization, Monday at 8% utilization"
+      },
+      {
+        "timestamp": "2026-01-15T14:00:00Z",
+        "actor": "Procurement Manager",
+        "action": "Cancelled Linear and Monday.com after 90-day minimum commitment period",
+        "context_visibility": "informed",
+        "context_available": ["Cancellation policy", "budget impact"],
+        "context_missing": [],
+        "amount_inr": -133000,
+        "note": "Had to pay 90-day minimum — ₹1.33L wasted even after cancellation decision"
+      }
+    ]
+  }
+]

@@ -1,0 +1,106 @@
+{
+  "rate_cards": {
+    "CRM": {
+      "category": "CRM",
+      "benchmark_price_per_seat_inr": 72000,
+      "currency": "INR",
+      "period": "annual",
+      "description": "Enterprise CRM seat including full API access",
+      "preferred_vendors": ["Salesforce", "HubSpot Enterprise", "Zoho CRM Plus"],
+      "notes": "Benchmark based on 15–30 seat enterprise tier. Discounts of 18-25% achievable at renewal with competing quote."
+    },
+    "Design": {
+      "category": "Design",
+      "benchmark_price_per_seat_inr": 16000,
+      "currency": "INR",
+      "period": "annual",
+      "description": "Creative suite with collaboration features",
+      "preferred_vendors": ["Adobe CC", "Figma Professional", "Canva Teams"],
+      "notes": "Adobe CC at current rate is 12% above category benchmark. CloudSource and Figma offer equivalent capability at lower cost."
+    },
+    "Comms": {
+      "category": "Comms",
+      "benchmark_price_per_seat_inr": 1800,
+      "currency": "INR",
+      "period": "annual",
+      "description": "Business communication platform (video + messaging)",
+      "preferred_vendors": ["Zoom", "Google Meet Business", "Microsoft Teams"],
+      "notes": "Bundled communication suites available 30–40% cheaper than point solutions."
+    },
+    "Infra": {
+      "category": "Infra",
+      "benchmark_price_per_seat_inr": null,
+      "currency": "INR",
+      "period": "annual",
+      "description": "Cloud compute reserved capacity",
+      "preferred_vendors": ["AWS", "GCP", "Azure"],
+      "notes": "RI commitments under 70% utilisation should trigger downsize review at renewal."
+    },
+    "Analytics": {
+      "category": "Analytics",
+      "benchmark_price_per_seat_inr": 28000,
+      "currency": "INR",
+      "period": "annual",
+      "description": "Business intelligence and data visualisation",
+      "preferred_vendors": ["Tableau", "Power BI", "Looker"],
+      "notes": "Power BI available at 60% of Tableau cost for equivalent functionality."
+    },
+    "Security": {
+      "category": "Security",
+      "benchmark_price_per_seat_inr": 8500,
+      "currency": "INR",
+      "period": "annual",
+      "description": "Endpoint security and identity management",
+      "preferred_vendors": ["CrowdStrike", "SentinelOne", "Microsoft Defender"],
+      "notes": "Volume discounts of 20% available above 100 seats."
+    }
+  },
+  "alternative_vendors": {
+    "CRM": [
+      {
+        "vendor": "HubSpot Enterprise",
+        "price_per_seat_inr": 65000,
+        "savings_vs_current_pct": 15,
+        "migration_effort": "medium",
+        "feature_parity_pct": 92,
+        "notes": "Full Salesforce data export available. 6-week migration timeline."
+      },
+      {
+        "vendor": "Zoho CRM Plus",
+        "price_per_seat_inr": 42000,
+        "savings_vs_current_pct": 42,
+        "migration_effort": "high",
+        "feature_parity_pct": 78,
+        "notes": "Significant feature gaps in enterprise reporting. Suitable for smaller sales teams."
+      }
+    ],
+    "Design": [
+      {
+        "vendor": "Figma Professional",
+        "price_per_seat_inr": 12000,
+        "savings_vs_current_pct": 31,
+        "migration_effort": "low",
+        "feature_parity_pct": 89,
+        "notes": "Collaborative design at 75% of Adobe CC cost. Most design workflows supported."
+      },
+      {
+        "vendor": "CloudSource Creative",
+        "price_per_seat_inr": 9800,
+        "savings_vs_current_pct": 45,
+        "migration_effort": "medium",
+        "feature_parity_pct": 82,
+        "notes": "Strong print design capability. Based on 3 past POs, average delivery time 2 weeks."
+      }
+    ],
+    "Comms": [
+      {
+        "vendor": "Google Meet Business",
+        "price_per_seat_inr": 1200,
+        "savings_vs_current_pct": 33,
+        "migration_effort": "low",
+        "feature_parity_pct": 95,
+        "notes": "If G-Suite already deployed, incremental cost is zero."
+      }
+    ]
+  }
+}
