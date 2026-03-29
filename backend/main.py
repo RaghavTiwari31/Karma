@@ -784,6 +784,54 @@ async def decision_dna_analyse(req: DecisionDNARequest) -> dict[str, Any]:
     )
 
 
+@app.get("/api/decision-dna", tags=["Decision DNA"])
+async def get_decision_dna() -> dict[str, Any]:
+    """
+    Convenience GET — returns pre-built decision DNA reconstructions from all fixture scenarios.
+    Used by the frontend Decision DNA page to render the timeline without a POST payload.
+    """
+    import json
+    from pathlib import Path
+    from backend.agents.base_agent import KARMAEvent
+
+    start = time.time()
+    path = Path("backend/connectors/fixtures/event_logs.json")
+    if not path.exists():
+        # Return empty result-set gracefully
+        return envelope({"results": [], "total_overrun_preventable_inr": 0}, agent="DecisionDNAAgent")
+
+    with open(path, encoding="utf-8") as f:
+        scenarios = json.load(f)
+
+    results = []
+    for s in scenarios:
+        event = KARMAEvent(
+            event_id=f"dna_get_{uuid.uuid4().hex[:8]}",
+            event_type="analyse_decision",
+            source="api",
+            payload={
+                "scenario_id": s["scenario_id"],
+                "event_log": s.get("events", []),
+                "total_overrun_inr": s.get("total_overrun_inr", 0),
+                "team": s.get("team", "Engineering"),
+                "period": s.get("period", "Q1 2026"),
+            },
+            context={},
+            timestamp=str(time.time()),
+        )
+        action = await state.orchestrator.dispatch(event)
+        if action:
+            chain = action.payload.get("analysis", {}).get("decision_chain", [])
+            results.extend(chain)
+
+    total_inr = sum(r.get("money_leaked_inr", 0) for r in results)
+    return envelope(
+        {"results": results, "total_overrun_preventable_inr": total_inr},
+        agent="DecisionDNAAgent",
+        latency_ms=round((time.time() - start) * 1000),
+    )
+
+
 @app.get("/api/decision-dna/scenarios", tags=["Decision DNA"])
 async def list_dna_scenarios() -> dict[str, Any]:
     """Returns the available fixture scenarios for Decision DNA analysis."""

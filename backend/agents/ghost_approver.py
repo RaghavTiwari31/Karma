@@ -56,6 +56,29 @@ class GhostApproverAgent(BaseAgent):
         category  = payload.get("category", "General")
         requester = payload.get("requester", "Unknown")
 
+        # --- Fast-path demo cache: checked BEFORE enrichment so seeded responses always hit ---
+        demo_cache_key = self._demo_cache_key(vendor, amount, category)
+        if self.db is not None:
+            cached = await self.db.get_cached_response(demo_cache_key)
+            if cached and cached.get("options"):
+                logger.info("GhostApprover DEMO cache HIT for %s ₹%s", vendor, f"{amount:,.0f}")
+                slack_blocks = self._build_slack_blocks(cached, vendor, amount)
+                await self.db.set_cached_response(demo_cache_key, cached)  # refresh TTL
+                return KARMAAction(
+                    action_id=f"ga_{uuid.uuid4().hex[:8]}",
+                    action_type="slack_message",
+                    target=requester,
+                    payload={
+                        "analysis": cached,
+                        "slack_blocks": slack_blocks,
+                        "latency_ms": round((time.time() - t_start) * 1000),
+                        "enrichment": {"utilization": {}, "rate_card": {}, "alt_vendors": [], "past_pos_count": 0},
+                    },
+                    savings_inr=float(cached.get("max_savings_inr", 0)),
+                    confidence_score=float(cached.get("confidence", 70)) / 100,
+                    requires_approval=True,
+                )
+
         # --- Enrichment pipeline (parallel would be ideal; serial for clarity) ---
         try:
             utilization = await self.connectors["sap"].get_utilization(vendor)
@@ -460,3 +483,14 @@ class GhostApproverAgent(BaseAgent):
             logger.info("Karma Score: team=%s %+d pts → %.1f", team, delta, new_score)
         except Exception as e:
             logger.warning("Karma Score credit failed: %s", e)
+
+    @staticmethod
+    def _demo_cache_key(vendor: str, amount: float, category: str) -> str:
+        """
+        Stable cache key based only on vendor+amount+category.
+        Used for pre-seeded demo responses — stored by seed_gemini_cache.py
+        with the same key so they're always found regardless of SAP connector data.
+        """
+        import hashlib
+        payload = f"DEMO|{vendor.strip().lower()}|{int(amount)}|{category.strip().lower()}"
+        return hashlib.sha256(payload.encode()).hexdigest()

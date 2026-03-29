@@ -374,11 +374,15 @@ class WasteCalendarAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     async def _persist_events(self, events: list[dict], today: date) -> None:
+        import hashlib
         for ev in events:
+            vendor = ev.get("vendor", "Unknown")
+            category = ev.get("category", "General")
+            stable_id = f"evt_{hashlib.md5(f'{vendor}_{category}'.encode()).hexdigest()[:8]}"
             db_record = {
-                "id": ev.get("event_id", f"evt_{uuid.uuid4().hex[:8]}"),
-                "vendor": ev.get("vendor", "Unknown"),
-                "category": ev.get("category", "General"),
+                "id": ev.get("event_id", stable_id),
+                "vendor": vendor,
+                "category": category,
                 "renewal_date": ev.get("renewal_date") or ev.get("contract_end", str(today)),
                 "urgency_label": ev.get("urgency_label", "MEDIUM"),
                 "estimated_savings_inr": ev.get("estimated_savings_inr", 0),

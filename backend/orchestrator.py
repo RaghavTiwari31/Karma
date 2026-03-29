@@ -105,7 +105,7 @@ class Orchestrator:
 
     def _resolve_agent(self, event: KARMAEvent) -> str:
         """Map event → agent key. Extend as new agents are added."""
-        if event.source in ("csv", "sap", "jira") and event.event_type in (
+        if event.source in ("csv", "sap", "jira", "slack") and event.event_type in (
             "renewal_due", "refresh", "assign", "complete"
         ):
             return "waste_calendar"

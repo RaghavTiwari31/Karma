@@ -1,6 +1,6 @@
 vendor,sla_threshold_pct,current_uptime_pct,penalty_per_breach_inr,contract_end,category,account_manager
-CloudVendorX,99.5,98.2,500000,2026-06-30,Cloud Infrastructure,ops@acme.com
-DataProvider Y,99.0,98.8,250000,2026-05-31,Data APIs,procurement@acme.com
-PaymentGateway Z,99.9,99.7,1200000,2026-09-30,Payments,finance@acme.com
-CDN ProMax,99.5,99.1,300000,2026-04-15,CDN,infra@acme.com
-StorageVault Co.,99.0,98.5,175000,2026-07-31,Storage,ops@acme.com
+CloudVendorX,99.5,97.8,500000,2026-06-30,Cloud Infrastructure,ops@acme.com
+DataProvider Y,99.9,98.2,250000,2026-05-31,Data APIs,procurement@acme.com
+PaymentGateway Z,99.9,99.1,1200000,2026-09-30,Payments,finance@acme.com
+CDN ProMax,99.5,98.7,300000,2026-04-15,CDN,infra@acme.com
+StorageVault Co.,99.0,97.9,175000,2026-07-31,Storage,ops@acme.com
