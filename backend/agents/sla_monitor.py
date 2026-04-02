@@ -15,6 +15,7 @@ Breach risk levels:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import logging
 import uuid
@@ -59,8 +60,11 @@ class SLAMonitorAgent(BaseAgent):
         results = []
         total_exposure = 0
 
-        for contract in contracts:
-            risk = await self._analyse_contract(contract)
+        # Run analyses in parallel to avoid serial Gemini latencies
+        tasks = [self._analyse_contract(contract) for contract in contracts]
+        risk_results = await asyncio.gather(*tasks)
+
+        for risk in risk_results:
             if risk:
                 results.append(risk)
                 total_exposure += risk.get("penalty_exposure_inr", 0)

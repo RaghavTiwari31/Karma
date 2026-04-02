@@ -1,12 +1,9 @@
 """
 gemini_client.py
-Wrapper around the NEW Google GenAI SDK (google-genai).
-Upgraded from deprecated google-generativeai package.
-
+Wrapper around the Google Generative AI SDK (google-genai).
 Features:
-  - Uses gemini-2.0-flash (latest, most capable)
-  - Async content generation
-  - Enforced JSON output via response_mime_type
+  - Native async content generation via client.aio
+  - Enforced JSON output via system instruction
   - Retry-on-JSONDecodeError (up to 3 attempts with temperature bump)
   - SQLite response cache keyed by SHA-256 of (model + system + prompt)
   - Function Calling support for agentic tool use
@@ -21,14 +18,23 @@ from typing import Any, Callable, Optional
 
 from google import genai
 from google.genai import types
+from google.genai.errors import ClientError
 from dotenv import load_dotenv
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MODEL = "gemini-2.0-flash"
+_DEFAULT_MODEL = "gemini-2.5-flash"
+_FALLBACK_MODEL = "gemini-2.0-flash-lite"   # fast lite model when primary hits quota
 _MAX_RETRIES = 3
+_API_TIMEOUT_SECONDS = 30  # hard timeout per API call to avoid hangs
+_GENERATION_CONFIG_BASE = {
+    "temperature": 0.2,
+    "top_p": 0.95,
+    "max_output_tokens": 4096,
+    "response_mime_type": "application/json",
+}
 
 
 class GeminiClient:
@@ -41,10 +47,12 @@ class GeminiClient:
         key = api_key or os.getenv("GEMINI_API_KEY")
         if not key:
             raise EnvironmentError("GEMINI_API_KEY is not set. Add it to your .env file.")
+        
         self.client = genai.Client(api_key=key)
         self.model_name = model_name
         self._db = None  # injected after DB initialisation
-        logger.info(f"GeminiClient initialised with model: {model_name} (new SDK v{genai.__version__})")
+        self._semaphore = asyncio.Semaphore(1)  # Stricter concurrency for Free Tier
+        logger.info(f"GeminiClient initialised with model: {model_name} (concurrency: 1)")
 
     # ------------------------------------------------------------------
     # Public API: JSON generation (used by all agents)
@@ -279,46 +287,95 @@ class GeminiClient:
     ) -> dict[str, Any]:
         temperature = base_temperature or 0.2
         last_error: Optional[Exception] = None
+        current_model = self.model_name
+        used_fallback = False
 
-        for attempt in range(1, _MAX_RETRIES + 1):
+        for attempt in range(1, _MAX_RETRIES + 2):  # allow one extra attempt for fallback
             try:
-                raw_text = await self._call_api(prompt, system_instruction, temperature)
+                # Use global semaphore to avoid 429s during parallel tasks
+                async with self._semaphore:
+                    raw_text = await asyncio.wait_for(
+                        self._call_api(prompt, system_instruction, temperature, model_override=current_model),
+                        timeout=_API_TIMEOUT_SECONDS,
+                    )
                 return self._parse_json(raw_text)
+
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "Gemini API timeout after %ds on model %s (attempt %d)",
+                    _API_TIMEOUT_SECONDS, current_model, attempt,
+                )
+                if not used_fallback:
+                    logger.info("Switching to fallback model: %s", _FALLBACK_MODEL)
+                    current_model = _FALLBACK_MODEL
+                    used_fallback = True
+                    continue
+                last_error = asyncio.TimeoutError(f"Timeout after {_API_TIMEOUT_SECONDS}s")
+
+            except ClientError as exc:
+                if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+                    if not used_fallback:
+                        logger.info(
+                            "Gemini quota exhausted on %s. Falling back to %s...",
+                            current_model, _FALLBACK_MODEL,
+                        )
+                        current_model = _FALLBACK_MODEL
+                        used_fallback = True
+                        await asyncio.sleep(1)
+                        continue
+
+                    wait_time = 5 * attempt
+                    logger.warning(
+                        "Gemini Rate Limit (429) on fallback %s too. Waiting %ds (attempt %d)...",
+                        current_model, wait_time, attempt,
+                    )
+                    await asyncio.sleep(wait_time)
+                    last_error = exc
+                    continue
+                raise exc
+
             except json.JSONDecodeError as exc:
                 logger.warning(
-                    "Attempt %d/%d: JSONDecodeError — bumping temperature. Error: %s",
-                    attempt, _MAX_RETRIES, exc,
+                    "Attempt %d: JSONDecodeError. Temperature bumped. Error: %s",
+                    attempt, exc,
                 )
                 last_error = exc
                 temperature = min(temperature + 0.15, 1.0)
 
         raise ValueError(
-            f"Gemini returned invalid JSON after {_MAX_RETRIES} attempts. "
-            f"Last error: {last_error}"
+            f"Gemini failed after retries and fallback. Last model: {current_model}. Error: {last_error}"
         )
 
-    async def _call_api(self, prompt: str, system_instruction: str, temperature: float) -> str:
-        """Runs the Gemini API call in a thread pool (SDK is sync under the hood)."""
-        config = types.GenerateContentConfig(
+    async def _call_api(self, prompt: str, system_instruction: str, temperature: float, model_override: Optional[str] = None) -> str:
+        """Runs the asynchronous Gemini SDK call."""
+        model = model_override or self.model_name
+
+        config_kwargs: dict = dict(
+            temperature=temperature,
+            top_p=_GENERATION_CONFIG_BASE["top_p"],
+            max_output_tokens=_GENERATION_CONFIG_BASE["max_output_tokens"],
+            response_mime_type=_GENERATION_CONFIG_BASE["response_mime_type"],
             system_instruction=(
                 system_instruction
                 + "\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown fences, "
                 "no preamble, no trailing text."
             ),
-            temperature=temperature,
-            top_p=0.95,
-            max_output_tokens=2048,
-            response_mime_type="application/json",
         )
 
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=config,
-            )
+        # Disable thinking mode on gemini-2.5-* to prevent long hangs on complex prompts.
+        # Thinking is great for quality but incompatible with our <4s latency target.
+        if "2.5" in model:
+            try:
+                config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+            except AttributeError:
+                pass  # older SDK versions don't have ThinkingConfig — safe to ignore
+
+        config = types.GenerateContentConfig(**config_kwargs)
+
+        response = await self.client.aio.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=config,
         )
         return response.text
 
