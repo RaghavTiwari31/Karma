@@ -87,10 +87,13 @@ If you prefer to run services manually:
 python seed_gemini_cache.py
 ```
 
-**2. Start Backend APIs:**
+**2. Start Backend APIs (Run in separate terminal windows):**
 ```bash
-python -m uvicorn backend.mock_connectors:app --port 8001 &
-python -m uvicorn backend.main:app --port 8000 &
+# Terminal 1: Mock Server
+python -m uvicorn backend.connectors.mock_server:mock_app --port 8001
+
+# Terminal 2: Main API
+python -m uvicorn backend.main:app --port 8000
 ```
 
 **3. Start Frontend:**
