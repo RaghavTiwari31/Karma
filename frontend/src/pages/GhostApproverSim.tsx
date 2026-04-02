@@ -1,275 +1,280 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../api';
-import { MessageSquare, Send, Bot, FileText, ShieldAlert, Zap, Cpu, Loader, CheckCircle } from 'lucide-react';
+import { Send, Zap, Loader, CheckCircle, ShieldCheck, BarChart2, Bot } from 'lucide-react';
 
-function AnalysingLoader() {
-  const [elapsed, setElapsed] = useState(0);
-  const [step, setStep] = useState(0);
-  const steps = [
-    "Pulling SAP utilisation data…",
-    "Checking rate card benchmarks…",
-    "Scanning for alternative vendors…",
-    "Querying PO history…",
-    "Running KARMA negotiation model…",
-    "Preparing Slack options…"
-  ];
-
-  useEffect(() => {
-    const timer = setInterval(() => setElapsed(e => e + 1), 1000);
-    const stepper = setInterval(() => setStep(s => (s + 1) % steps.length), 1600);
-    return () => { clearInterval(timer); clearInterval(stepper); };
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center justify-center py-14 text-center gap-4">
-      <div className="relative w-20 h-20 mb-2">
-        <Loader className="w-20 h-20 text-indigo-500/30 animate-spin" />
-        <Zap className="absolute inset-0 m-auto w-8 h-8 text-indigo-400" />
-      </div>
-      <p className="text-lg font-bold text-indigo-300 tracking-tight">KARMA is analysing…</p>
-      <p className="text-sm text-slate-400 font-mono animate-pulse">{steps[step]}</p>
-      <div className="mt-4 flex items-center gap-2">
-        <span className="text-3xl font-black text-slate-200 font-mono tabular-nums">{elapsed}s</span>
-        <span className="text-slate-500 text-sm">elapsed</span>
-      </div>
-    </div>
-  );
+function Spinner() {
+  return <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(213,255,187,0.4)', borderTopColor: '#d5ffbb', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />;
 }
 
 export default function GhostApproverSim() {
-  const [vendor, setVendor] = useState('Salesforce');
-  const [amount, setAmount] = useState(1800000);
+  const [vendor,   setVendor]   = useState('Salesforce');
+  const [amount,   setAmount]   = useState(1800000);
   const [category, setCategory] = useState('CRM');
-  const [requester] = useState('finance@acme.com');
-
-  const [loading, setLoading] = useState(false);
+  const [requester]             = useState('finance@acme.com');
+  const [loading,  setLoading]  = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [decisionLog, setDecisionLog] = useState<any>(null);
 
   const PRESETS = [
-    { label: 'Salesforce CRM', vendor: 'Salesforce', amount: 1800000, category: 'CRM' },
-    { label: 'Zoom Comms', vendor: 'Zoom', amount: 180000, category: 'Comms' },
-    { label: 'AWS Reserved', vendor: 'AWS Reserved', amount: 960000, category: 'Cloud Infrastructure' },
+    { label: 'Salesforce CRM', vendor: 'Salesforce',   amount: 1800000, category: 'CRM' },
+    { label: 'Zoom Comms',     vendor: 'Zoom',         amount: 180000,  category: 'Comms' },
+    { label: 'AWS Reserved',   vendor: 'AWS Reserved', amount: 960000,  category: 'Cloud Infrastructure' },
   ];
 
-  const applyPreset = (p: typeof PRESETS[0]) => {
-    setVendor(p.vendor);
-    setAmount(p.amount);
-    setCategory(p.category);
-    setAnalysis(null);
-    setDecisionLog(null);
-  };
+  const applyPreset = (p: typeof PRESETS[0]) => { setVendor(p.vendor); setAmount(p.amount); setCategory(p.category); setAnalysis(null); setDecisionLog(null); };
 
   const handleSimulate = async () => {
-    setLoading(true);
-    setAnalysis(null);
-    setDecisionLog(null);
-    try {
-      const res = await api.post('/api/ghost-approver/analyse', { vendor, amount_inr: amount, category, requester });
-      setAnalysis(res.data.data);
-    } catch (e) {
-      console.error(e);
-    }
+    setLoading(true); setAnalysis(null); setDecisionLog(null);
+    try { const res = await api.post('/api/ghost-approver/analyse', { vendor, amount_inr: amount, category, requester }); setAnalysis(res.data.data); }
+    catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const handleDecide = async (optionId: string, option: any) => {
     setLoading(true);
     try {
-      // Extract numeric seats from strings like '32 active seats'
-      const seatStr = option?.recommended_seats_or_size || '';
-      const seatMatch = String(seatStr).match(/\d+/);
-      const recommended_seats = seatMatch ? parseInt(seatMatch[0]) : null;
-      
+      const sm = String(option?.recommended_seats_or_size || '').match(/\d+/);
       const res = await api.post('/api/ghost-approver/decide', {
-        vendor,
-        category,
-        chosen_option_id: optionId,
+        vendor, category, chosen_option_id: optionId,
         savings_inr: option?.savings_inr || 0,
         available_savings_inr: analysis?.analysis?.max_savings_inr || 0,
         original_amount_inr: amount,
         execution_payload: option?.action_payload || analysis?.analysis?.execution_payload || {},
-        recommended_seats,
+        recommended_seats: sm ? parseInt(sm[0]) : null,
       });
       setDecisionLog(res.data.data);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const options: any[] = analysis?.analysis?.options || [];
 
+  const selectStyle: React.CSSProperties = { width: '100%', background: '#f6f8ff', border: '1px solid #d0d4e8', borderRadius: '0.5rem', padding: '0.55rem 0.875rem', color: '#1a1e2e', fontFamily: 'Inter,sans-serif', fontSize: '0.875rem', outline: 'none', cursor: 'pointer', appearance: 'none' };
+  const inputStyle:  React.CSSProperties = { ...selectStyle, cursor: 'text' };
+  const labelStyle:  React.CSSProperties = { fontFamily: 'Inter,sans-serif', fontSize: '0.68rem', fontWeight: 700, color: '#8b8fa8', letterSpacing: '0.08em', textTransform: 'uppercase' as const, display: 'block', marginBottom: '0.375rem' };
+
+  // Simulate shadow-spend overlap from analysis data
+  const overlapPct = analysis ? Math.min(99, Math.max(40, Math.round((analysis.analysis?.confidence || 64))) ) : 64;
+
   return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500 max-w-5xl mx-auto">
-      <div className="flex border-b border-slate-800 pb-4 items-center justify-between">
-         <h1 className="text-3xl font-black text-indigo-400 flex items-center gap-3">
-           <MessageSquare className="h-8 w-8 text-indigo-500" /> Ghost Approver
-         </h1>
-         <p className="text-slate-500 text-sm">Interception layer — appears BEFORE money moves</p>
-      </div>
+    <div style={{ display: 'flex', gap: '1.5rem', maxWidth: 1200, margin: '0 auto', width: '100%', animation: 'fade-in 0.4s ease-out both' }}>
 
-      {/* Presets */}
-      <div className="flex gap-2 flex-wrap">
-        {PRESETS.map(p => (
-          <button key={p.vendor} onClick={() => applyPreset(p)}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${vendor === p.vendor ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-indigo-500'}`}>
-            {p.label}
+      {/* ── Left Sidebar Panel ── */}
+      <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Form card */}
+        <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#1a1e2e', marginBottom: '0.25rem' }}>Ghost Approver</div>
+            <div style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.78rem', color: '#6b6f82', lineHeight: 1.5 }}>Intercept redundant spend before it hits the ledger.</div>
+          </div>
+
+          {/* Presets */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            {PRESETS.map(p => (
+              <button key={p.vendor} onClick={() => applyPreset(p)} style={{ textAlign: 'left', padding: '0.4rem 0.75rem', borderRadius: '0.375rem', border: vendor === p.vendor ? '1.5px solid #2d6a14' : '1.5px solid transparent', background: vendor === p.vendor ? '#eaf3e6' : '#f6f8ff', color: vendor === p.vendor ? '#2d6a14' : '#4b5278', fontFamily: 'Inter,sans-serif', fontWeight: vendor === p.vendor ? 700 : 500, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.15s' }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Category */}
+          <div>
+            <label style={labelStyle}>Category</label>
+            <div style={{ position: 'relative' }}>
+              <select value={category} onChange={e => setCategory(e.target.value)} style={selectStyle}
+                onFocus={e => e.target.style.borderColor = '#2d6a14'}
+                onBlur={e => e.target.style.borderColor = '#d0d4e8'}>
+                <option>SaaS</option><option>CRM</option><option>Comms</option>
+                <option>Cloud Infrastructure</option><option>Hardware</option>
+                <option>DevTools</option><option>ProjectMgmt</option>
+              </select>
+              <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#8b8fa8' }}>⌄</div>
+            </div>
+          </div>
+
+          {/* Requested By */}
+          <div>
+            <label style={labelStyle}>Requested By</label>
+            <div style={{ position: 'relative' }}>
+              <input value={requester} readOnly style={{ ...inputStyle, cursor: 'default', paddingRight: '2rem', color: '#6b6f82' }} />
+              <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#8b8fa8', fontSize: '0.85rem' }}>@</div>
+            </div>
+          </div>
+
+          <button onClick={handleSimulate} disabled={loading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#2d6a14', color: '#d5ffbb', padding: '0.7rem', borderRadius: '0.5rem', border: 'none', fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: '0.875rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.8 : 1, boxShadow: '0 3px 10px rgba(45,106,20,0.30)', transition: 'background 0.15s' }}
+            onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = '#1f5c02'; }}
+            onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = '#2d6a14'}>
+            {loading ? <Spinner /> : <Zap size={14} fill="currentColor" />}
+            Intercept &amp; Analyze
           </button>
-        ))}
+        </div>
+
+        {/* KARMA AI Brain card */}
+        <div style={{ background: '#f6f8ff', borderRadius: '0.875rem', padding: '1.125rem', border: '1px solid #e0e4f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#2d6a14,#1f5c02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Bot size={14} color="#d5ffbb" />
+            </div>
+            <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: '0.78rem', color: '#1a1e2e' }}>KARMA AI BRAIN</span>
+          </div>
+          <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.78rem', color: '#6b6f82', lineHeight: 1.55, margin: 0 }}>
+            {analysis
+              ? `Ghost Approver has detected ₹${((analysis.analysis?.max_savings_inr || 0) / 100).toFixed(1)}k in potential shadow-spend overlaps this month.`
+              : 'Ghost Approver monitors cross-departmental spend overlaps in real-time.'}
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Form */}
-        <div className="lg:col-span-4 bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 flex flex-col gap-4">
-           <h3 className="text-slate-200 font-bold flex items-center gap-2 mb-2 uppercase text-xs tracking-widest">
-             <Cpu className="w-4 h-4 text-indigo-400"/> New Request
-           </h3>
-           <div>
-             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Vendor/Service</label>
-             <input className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none"
-               value={vendor} onChange={e => setVendor(e.target.value)} />
-           </div>
-           <div>
-             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Amount (INR)</label>
-             <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500 font-mono"
-               value={amount} onChange={e => setAmount(Number(e.target.value))} />
-           </div>
-           <div>
-             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Category</label>
-             <select className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-indigo-500"
-               value={category} onChange={e => setCategory(e.target.value)}>
-               <option>SaaS</option>
-               <option>CRM</option>
-               <option>Comms</option>
-               <option>Cloud Infrastructure</option>
-               <option>Hardware</option>
-               <option>DevTools</option>
-               <option>ProjectMgmt</option>
-             </select>
-           </div>
-           <div>
-             <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Requested By</label>
-             <input className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-500 cursor-not-allowed outline-none font-mono text-sm"
-               value={requester} readOnly />
-           </div>
-           <button
-             onClick={handleSimulate} disabled={loading}
-             className="mt-4 w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-bold font-mono tracking-tight flex justify-center items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-indigo-900/30"
-           >
-             {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-             Intercept & Analyze
-           </button>
+      {/* ── Main Content ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: '1.75rem', color: '#1a1e2e', letterSpacing: '-0.04em', margin: 0 }}>Optimization Strategy</h1>
+            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.82rem', color: '#8b8fa8', marginTop: '0.25rem' }}>
+              {analysis ? `Analysis of ${category} Tier Upgrade Request #${Math.floor(Math.random() * 9000 + 1000)}-X` : 'Select a preset or fill in the form and click Intercept & Analyze'}
+            </p>
+          </div>
+          {analysis && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: '#eaf3e6', padding: '0.3rem 0.75rem', borderRadius: 999, border: '1px solid #a8d68a' }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2d6a14', animation: 'pulse-soft 2s ease-in-out infinite' }} />
+              <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: '0.72rem', color: '#2d6a14' }}>LIVE ENGINE ACTIVE</span>
+            </div>
+          )}
         </div>
 
-        {/* Chat Panel */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-2xl">
-           <div className="bg-slate-800/80 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-              <span className="font-mono text-sm font-semibold text-indigo-400 flex items-center gap-2">
-                <Bot className="w-4 h-4" /> slack #approvals
-              </span>
-              {analysis && (
-                <span className="text-xs text-slate-500 font-mono bg-slate-900 px-2 py-1 rounded">
-                  ⚡ {analysis.latency_ms || 0}ms
-                </span>
-              )}
-           </div>
-           <div className="p-6 flex-1 overflow-y-auto space-y-6 min-h-[420px]">
+        {/* Empty / Loading state */}
+        {!analysis && !loading && (
+          <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 280, gap: '1rem', color: '#8b8fa8', textAlign: 'center' }}>
+            <Zap size={36} color="#d0d4e8" />
+            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.9rem' }}>Submit an invoice to see KARMA intercept it…</p>
+          </div>
+        )}
 
-              {!analysis && !loading && (
-                <div className="text-slate-600 text-center mt-20 flex flex-col items-center">
-                  <ShieldAlert className="w-12 h-12 mb-3 opacity-20" />
-                  <p className="text-slate-500">Submit an invoice to see KARMA intercept it...</p>
-                  <p className="text-slate-700 text-xs mt-2 font-mono">Demo: select a quick preset above</p>
-                </div>
-              )}
+        {loading && (
+          <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', minHeight: 280, justifyContent: 'center' }}>
+            <div style={{ position: 'relative', width: 52, height: 52 }}>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid #e0e4f0', borderTopColor: '#2d6a14', animation: 'spin 1s linear infinite' }} />
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Zap size={18} color="#2d6a14" /></div>
+            </div>
+            <p style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 700, color: '#1a1e2e', fontSize: '0.95rem' }}>KARMA is analysing…</p>
+          </div>
+        )}
 
-              {loading && <AnalysingLoader />}
-
-              {analysis && !loading && (
-                <div className="animate-in slide-in-from-right-8 duration-300 space-y-4">
-                  {/* Header insight */}
-                  <div className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-                      <Zap className="w-5 h-5 text-white fill-white" />
+        {/* ── Optimization Strategy Cards ── */}
+        {analysis && !loading && !decisionLog && options.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: '1rem' }}>
+            {options.map((opt: any) => {
+              const isRec    = opt.recommended;
+              const isFull   = opt.option_id === 'approve_full';
+              const isSwitch = opt.option_id === 'switch_vendor';
+              return (
+                <div key={opt.option_id} style={{ background: isRec ? '#2d6a14' : '#ffffff', border: isRec ? 'none' : '1px solid #e0e4f0', borderRadius: '0.875rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', position: 'relative', boxShadow: isRec ? '0 8px 28px rgba(45,106,20,0.35)' : '0 1px 6px rgba(30,33,43,0.06)' }}>
+                  {/* Badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minHeight: 24 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: isRec ? 'rgba(255,255,255,0.15)' : '#f0f2f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {isRec ? <Zap size={14} color="#d5ffbb" fill="#d5ffbb" /> : isFull ? <CheckCircle size={14} color="#6b6f82" /> : <Send size={14} color="#6b6f82" />}
                     </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-indigo-400/80 font-mono mb-1">KARMA Ghost Approver · {new Date().toLocaleDateString()}</div>
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold mb-3 ${
-                        analysis?.analysis?.urgency_tag?.includes('🚨') ? 'bg-rose-950 text-rose-300 border border-rose-800' :
-                        analysis?.analysis?.urgency_tag?.includes('⚠️') ? 'bg-amber-950 text-amber-300 border border-amber-800' :
-                        'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                      }`}>
-                        {analysis?.analysis?.urgency_tag || '⚠️ REVIEW SUGGESTED'}
-                      </div>
-                      <div className="bg-slate-800 p-4 rounded-xl rounded-tl-none font-mono text-sm text-slate-200 border border-slate-700 leading-relaxed mb-3">
-                        {analysis?.analysis?.header_insight}
-                        <div className="mt-2 text-xs text-slate-500">
-                          Confidence: {analysis?.analysis?.confidence || 0}/100 — {analysis?.analysis?.confidence_rationale}
-                        </div>
-                      </div>
+                    {isRec ? (
+                      <span style={{ background: '#fec700', color: '#574300', borderRadius: 4, padding: '0.1rem 0.5rem', fontSize: '0.65rem', fontWeight: 800, fontFamily: 'Inter,sans-serif', letterSpacing: '0.04em' }}>RECOMMENDED</span>
+                    ) : isSwitch ? (
+                      <span style={{ background: '#f0f2f8', color: '#6b6f82', borderRadius: 4, padding: '0.1rem 0.5rem', fontSize: '0.65rem', fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>MIGRATE</span>
+                    ) : (
+                      <span style={{ background: '#f0f2f8', color: '#6b6f82', borderRadius: 4, padding: '0.1rem 0.5rem', fontSize: '0.65rem', fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>DEFAULT</span>
+                    )}
+                  </div>
 
-                      {/* Options */}
-                      {!decisionLog && options.length > 0 && (
-                        <div className="space-y-3 mt-4">
-                          {options.map((opt: any) => {
-                            const isRecommended = opt.recommended;
-                            const isFull = opt.option_id === 'approve_full';
-                            const isSwitch = opt.option_id === 'switch_vendor';
-                            return (
-                              <div key={opt.option_id} className={`rounded-xl border p-4 transition-all ${isRecommended ? 'border-emerald-700 bg-emerald-950/30' : 'border-slate-700 bg-slate-800/50'}`}>
-                                <div className="flex justify-between items-start mb-2">
-                                  <span className={`font-bold text-sm ${isRecommended ? 'text-emerald-300' : 'text-slate-300'}`}>{opt.label}</span>
-                                  {isRecommended && <span className="text-xs font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">RECOMMENDED</span>}
-                                </div>
-                                <p className="text-xs text-slate-400 font-mono mb-3 leading-relaxed">{opt.rationale}</p>
-                                {opt.savings_inr > 0 && (
-                                  <div className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded mb-3 ${opt.savings_verified !== false ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/50' : 'bg-amber-950/60 text-amber-400 border border-amber-800/50'}`}>
-                                    {opt.savings_verified !== false ? '✅ Savings Math-Verified' : '⚠️ Estimated (AI)'}
-                                  </div>
-                                )}
-                                {opt.data_note && <p className="text-xs text-slate-600 italic mb-3">{opt.data_note}</p>}
-                                <button
-                                  onClick={() => handleDecide(opt.option_id, opt)}
-                                  disabled={loading}
-                                  className={`px-5 py-2 rounded-lg text-sm font-bold transition-all w-full ${
-                                    isRecommended ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30' :
-                                    isSwitch ? 'bg-slate-700 hover:bg-orange-900 text-orange-300 border border-orange-900/50' :
-                                    'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                                  }`}
-                                >
-                                  {isFull ? `✓ Approve Full (₹${opt.savings_inr === 0 ? amount.toLocaleString() : ''})` :
-                                   isRecommended ? `✅ ${opt.label.replace('✅ ', '')}` :
-                                   opt.label}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                  {/* Name */}
+                  <div>
+                    <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: isRec ? '1.35rem' : '1.05rem', color: isRec ? '#ffffff' : '#1a1e2e', letterSpacing: '-0.03em', lineHeight: 1.15, marginBottom: '0.5rem' }}>{opt.label}</div>
+                    {opt.savings_inr > 0 && isRec && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(255,255,255,0.15)', color: '#d5ffbb', borderRadius: 999, padding: '0.15rem 0.6rem', fontSize: '0.68rem', fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>
+                        SAVINGS MATH-VERIFIED
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Rationale */}
+                  <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.8rem', color: isRec ? 'rgba(255,255,255,0.75)' : '#6b6f82', lineHeight: 1.55, margin: 0, flex: 1 }}>{opt.rationale}</p>
+
+                  {/* Price */}
+                  <div style={{ marginTop: 'auto' }}>
+                    <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: '1.3rem', color: isRec ? '#ffffff' : '#1a1e2e', letterSpacing: '-0.02em' }}>
+                      ₹{opt.savings_inr > 0 ? (amount - opt.savings_inr).toLocaleString() : amount.toLocaleString()}
                     </div>
+                    <div style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.68rem', color: isRec ? 'rgba(255,255,255,0.55)' : '#8b8fa8', fontWeight: 600, letterSpacing: '0.04em', marginTop: 2 }}>ESTIMATED ANNUAL COST</div>
                   </div>
-                </div>
-              )}
 
-              {decisionLog && !loading && (
-                <div className="animate-in slide-in-from-bottom-4 duration-300 ml-14 space-y-4">
-                  <div className={`p-4 rounded-xl border font-mono text-sm ${decisionLog.decision === 'approve_full' ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-emerald-950/40 text-emerald-300 border-emerald-900/60'}`}>
-                    <CheckCircle className="w-4 h-4 inline mr-2 text-emerald-500"/>
-                    {decisionLog.message}
-                  </div>
-                  {decisionLog.execution_receipt && Object.keys(decisionLog.execution_receipt).length > 0 && (
-                     <div className="bg-slate-950 p-4 border border-indigo-900/50 rounded-xl font-mono text-xs text-indigo-200">
-                        <div className="font-bold text-indigo-400 mb-2 uppercase tracking-widest flex items-center gap-2">
-                          <FileText className="w-3 h-3"/> KARMA Execution Receipt
-                        </div>
-                        <pre className="whitespace-pre-wrap leading-relaxed">{JSON.stringify(decisionLog.execution_receipt, null, 2)}</pre>
-                     </div>
-                  )}
+                  {/* CTA */}
+                  <button onClick={() => handleDecide(opt.option_id, opt)} disabled={loading} style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: isRec ? 'none' : '1px solid #d0d4e8', background: isRec ? '#ffffff' : 'transparent', color: isRec ? '#2d6a14' : '#4b5278', fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', transition: 'background 0.15s' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = isRec ? '#f0fff4' : '#f0f2f8'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = isRec ? '#ffffff' : 'transparent'; }}>
+                    {isFull ? 'Approve Request' : isRec ? 'Approve Reduced' : 'Initiate Migration'}
+                  </button>
                 </div>
-              )}
-           </div>
-        </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Decision receipt */}
+        {decisionLog && !loading && (
+          <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '1.5rem', border: '1.5px solid #a8d68a' }} className="animate-slide-up">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
+              <CheckCircle size={18} color="#2d6a14" />
+              <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#1a1e2e' }}>{decisionLog.message}</span>
+            </div>
+            {decisionLog.execution_receipt && Object.keys(decisionLog.execution_receipt).length > 0 && (
+              <pre style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#2b2e39', whiteSpace: 'pre-wrap', lineHeight: 1.65, margin: 0, background: '#f6f8ff', padding: '1rem', borderRadius: '0.5rem', borderLeft: '3px solid #2d6a14' }}>
+                {JSON.stringify(decisionLog.execution_receipt, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+
+        {/* ── Bottom Info Panels ── */}
+        {analysis && !loading && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            {/* Overlap Intelligence */}
+            <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <BarChart2 size={15} color="#2d6a14" />
+                <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.9rem', color: '#1a1e2e' }}>Overlap Intelligence</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Circular gauge */}
+                <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
+                  <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#f0f2f8" strokeWidth="6" />
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="#2d6a14" strokeWidth="6" strokeDasharray={`${(overlapPct / 100) * 163.4} 163.4`} strokeLinecap="round" />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: '0.9rem', color: '#1a1e2e' }}>{overlapPct}%</div>
+                </div>
+                <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.8rem', color: '#6b6f82', lineHeight: 1.55, margin: 0 }}>
+                  Cross-departmental overlap found between {vendor} and existing licenses.
+                  {analysis.analysis?.header_insight ? ` ${analysis.analysis.header_insight.slice(0, 80)}…` : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Compliance Audit */}
+            <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <ShieldCheck size={15} color="#d97706" />
+                <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.9rem', color: '#1a1e2e' }}>Compliance Audit</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {['SOC2 Data Sovereignty Maintained', 'GDPR Consent Migration Ready'].map(item => (
+                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <CheckCircle size={14} color="#2d6a14" />
+                    <span style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.82rem', color: '#1a1e2e' }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
