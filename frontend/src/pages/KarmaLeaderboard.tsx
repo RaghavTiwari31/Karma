@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Trophy, RefreshCw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -15,7 +15,7 @@ function tierInfo(rank: number) {
 function Avatar({ name, size = 52, bg = '#2d6a14' }: { name: string; size?: number; bg?: string }) {
   const initials = name.split(/\s+/).map((w: string) => w[0]).join('').toUpperCase().slice(0, 2);
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: size * 0.35, color: '#ffffff', flexShrink: 0, border: '3px solid #ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+    <div style={{ margin: '0 auto', width: size, height: size, borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: size * 0.35, color: '#ffffff', flexShrink: 0, border: '3px solid #ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
       {initials}
     </div>
   );
@@ -77,7 +77,7 @@ export default function KarmaLeaderboard() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading]         = useState(true);
   const [chartData, setChartData]     = useState<any[]>([]);
-  const [topTeamHistory, setTopTeamHistory] = useState<any[]>([]);
+
 
   const MONTHS = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
 
@@ -291,13 +291,13 @@ export default function KarmaLeaderboard() {
           </div>
 
           {/* Karma Insight */}
-          <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '1.125rem', border: '1px solid #eceef6', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#eaf3e6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.85rem' }}>Info</span>
+          <div style={{ background: '#ffffff', borderRadius: '0.875rem', border: '3px solid #004ac2', overflow: 'hidden' }}>
+            <div style={{ background: '#004ac2', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <img src="/insight-icon.png" alt="Insight Icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+              <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>Karma Insight</div>
             </div>
-            <div>
-              <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.85rem', color: '#1a1e2e', marginBottom: '0.375rem' }}>Karma Insight</div>
-              <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.78rem', color: '#6b6f82', lineHeight: 1.55, margin: 0 }}>
+            <div style={{ padding: '0.875rem 1rem' }}>
+              <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.78rem', color: '#6b6f82', lineHeight: 1.55, margin: 0, textAlign: 'center' }}>
                 {leaderboard[1]?.team_name || 'Marketing'} is currently <strong style={{ color: '#1a1e2e' }}>12% closer</strong> to the top spot than last month. Their efficiency gain is driven by better RI coverage.
               </p>
             </div>

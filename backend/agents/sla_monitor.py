@@ -256,7 +256,7 @@ class SLAMonitorAgent(BaseAgent):
                 "vendor":                vendor,
                 "category":              risk.get("category", "SLA Risk"),
                 "renewal_date":          str(date.today() + timedelta(days=days_remain)),
-                "urgency_label":         f"🚨 SLA {risk_level} — {vendor}",
+                "urgency_label":         f"SLA {risk_level} — {vendor}",
                 "estimated_savings_inr": float(exposure),
                 "assigned_to":           risk.get("escalate_to"),
                 "status":                "open",

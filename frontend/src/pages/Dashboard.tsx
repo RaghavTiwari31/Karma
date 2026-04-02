@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Trophy, AlertTriangle, CheckCircle, Zap, Monitor, Calendar } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
@@ -16,7 +16,9 @@ function LiveToast({ toast }: { toast: any }) {
     <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 200 }}>
       <div style={{ background: c.bg, color: c.text, padding: '1rem 1.25rem', borderRadius: '0.75rem', maxWidth: 320, boxShadow: '0 16px 40px rgba(30,33,43,0.18)', fontFamily: 'Inter,sans-serif' }}>
         <div style={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{toast.agent}</div>
-        <div style={{ fontWeight: 700, fontSize: '0.9rem', fontFamily: 'Manrope,sans-serif', marginBottom: 4 }}>{toast.title}</div>
+        <div style={{ fontWeight: 700, fontSize: '0.9rem', fontFamily: 'Manrope,sans-serif', marginBottom: 4 }}>
+          {toast.title.replace(/^[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]\s*/g, '').replace(/^[✅🔄🚨⚠️👻📋💰]/g, '').trim()}
+        </div>
         <div style={{ fontSize: '0.78rem', opacity: 0.85 }}>
           {JSON.stringify(toast.data).replace(/[{}]/g, '').replace(/"/g, '')}
         </div>

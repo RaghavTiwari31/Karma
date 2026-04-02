@@ -26,9 +26,9 @@ Confidence scoring guide:
 - <50:    No enrichment data — analysis is indicative only
 
 Urgency tags for the header message:
-- "🚨 ACTION NEEDED" if current rate > benchmark by >15%
-- "⚠️ REVIEW SUGGESTED" if utilisation < 60% or rate 5–15% above benchmark
-- "✅ LOOKS REASONABLE" if utilisation >80% and rate within 5% of benchmark
+- "ACTION NEEDED" if current rate > benchmark by >15%
+- "REVIEW SUGGESTED" if utilisation < 60% or rate 5–15% above benchmark
+- "LOOKS REASONABLE" if utilisation >80% and rate within 5% of benchmark
 
 You must respond ONLY with valid JSON matching the exact schema requested. No markdown, no explanation."""
 
@@ -100,7 +100,7 @@ Past {len(past_pos)} POs with {vendor}: {json.dumps(past_pos, indent=2) if past_
 
 Generate 2–3 approval options. Return EXACTLY this JSON structure:
 {{
-  "urgency_tag": "<🚨 ACTION NEEDED | ⚠️ REVIEW SUGGESTED | ✅ LOOKS REASONABLE>",
+  "urgency_tag": "<ACTION NEEDED | REVIEW SUGGESTED | LOOKS REASONABLE>",
   "header_insight": "<one punchy sentence, ≤20 words, summarising the key financial risk or opportunity>",
   "options": [
     {{
@@ -113,7 +113,7 @@ Generate 2–3 approval options. Return EXACTLY this JSON structure:
     }},
     {{
       "option_id": "approve_reduced",
-      "label": "✅ Approve Reduced — <seats/size> (saves ₹X,XX,XXX)",
+      "label": "Approve Reduced — <seats/size> (saves ₹X,XX,XXX)",
       "action_type": "approve_reduced",
       "savings_inr": <integer, conservative>,
       "recommended_seats_or_size": "<specific recommendation>",
@@ -122,7 +122,7 @@ Generate 2–3 approval options. Return EXACTLY this JSON structure:
     }},
     {{
       "option_id": "switch_vendor",
-      "label": "🔄 Switch to <alt_vendor> (saves ₹X,XX,XXX)",
+      "label": "Switch to <alt_vendor> (saves ₹X,XX,XXX)",
       "action_type": "switch_vendor",
       "savings_inr": <integer>,
       "alternative_vendor": "<name>",

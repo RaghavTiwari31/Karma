@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Search, Database, BarChart2, Lock, Zap, ShieldCheck, GitBranch } from 'lucide-react';
 
@@ -192,13 +192,13 @@ export default function DecisionDNA() {
           </button>
 
           {/* AI Insight bubble */}
-          <div style={{ background: '#ffffff', borderRadius: '0.875rem', padding: '1rem', border: '1px solid #eceef6', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#fec700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <span style={{ fontSize: '1rem' }}>Insight</span>
+          <div style={{ background: '#ffffff', borderRadius: '0.875rem', border: '3px solid #fec700', overflow: 'hidden' }}>
+            <div style={{ background: '#fec700', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <img src="/insight-icon.png" alt="Insight Icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+              <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000000' }}>AI Insight</div>
             </div>
-            <div>
-              <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.85rem', color: '#1a1e2e', marginBottom: '0.375rem' }}>AI Insight</div>
-              <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.78rem', color: '#6b6f82', lineHeight: 1.55, margin: 0 }}>
+            <div style={{ padding: '0.875rem 1rem' }}>
+              <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.78rem', color: '#6b6f82', lineHeight: 1.55, margin: 0, textAlign: 'center' }}>
                 {item?.context_human_missed?.[0]
                   ? item.context_human_missed[0]
                   : `Moving to t3.large nodes would improve DNA confidence to 99.2% due to higher historical uptime in us-east-1.`}

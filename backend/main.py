@@ -591,15 +591,17 @@ async def ghost_approver_decide(req: DecideRequest) -> dict[str, Any]:
 
     # --- Live alert ---
     _dmap = {
-        "approve_full":    ("✅", "Approved full amount",                              "info"),
-        "approve_reduced": ("💰", f"Approved reduced — ₹{req.savings_inr:,.0f} saved", "success"),
-        "switch_vendor":   ("🔄", f"Vendor switch — ₹{req.savings_inr:,.0f} saved",   "success"),
+        "approve_full":    "Approved full amount",
+        "approve_reduced": f"Approved reduced — ₹{req.savings_inr:,.0f} saved",
+        "switch_vendor":   f"Vendor switch — ₹{req.savings_inr:,.0f} saved",
     }
-    _ic, _lbl, _sev = _dmap.get(req.chosen_option_id, ("📋", "Decision logged", "info"))
+    _lbl = _dmap.get(req.chosen_option_id, "Decision logged")
+    _sev = "info" if req.chosen_option_id == "approve_full" else "success"
+    
     asyncio.create_task(broadcast_alert(
         event_type="ghost_approver.decide",
         agent="GhostApproverAgent",
-        title=f"{_ic} {req.vendor}: {_lbl}",
+        title=f"{req.vendor}: {_lbl}",
         severity=_sev,
         body={
             "vendor":      req.vendor,

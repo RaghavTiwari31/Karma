@@ -334,7 +334,7 @@ class GhostApproverAgent(BaseAgent):
         if savings_reduced > 0:
             options.append({
                 "option_id": "approve_reduced",
-                "label": f"✅ Approve Reduced — {recommended_seats} seats (saves ₹{savings_reduced:,})",
+                "label": f"Approve Reduced — {recommended_seats} seats (saves ₹{savings_reduced:,})",
                 "action_type": "approve_reduced",
                 "savings_inr": savings_reduced,
                 "recommended_seats_or_size": str(recommended_seats),
@@ -347,7 +347,7 @@ class GhostApproverAgent(BaseAgent):
             alt_savings = int(amount * alt.get("savings_vs_current_pct", 20) / 100 / 10000) * 10000
             options.append({
                 "option_id": "switch_vendor",
-                "label": f"🔄 Switch to {alt['vendor']} (saves ₹{alt_savings:,})",
+                "label": f"Switch to {alt['vendor']} (saves ₹{alt_savings:,})",
                 "action_type": "switch_vendor",
                 "savings_inr": alt_savings,
                 "alternative_vendor": alt["vendor"],
@@ -357,7 +357,7 @@ class GhostApproverAgent(BaseAgent):
             })
 
         max_savings = max(o.get("savings_inr", 0) for o in options)
-        urgency = "⚠️ REVIEW SUGGESTED" if util_pct < 70 else "✅ LOOKS REASONABLE"
+        urgency = "REVIEW SUGGESTED" if util_pct < 70 else "LOOKS REASONABLE"
 
         return {
             "urgency_tag": urgency,
@@ -380,7 +380,7 @@ class GhostApproverAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     def _build_slack_blocks(self, analysis: dict, vendor: str, amount: float) -> list:
-        urgency_tag    = analysis.get("urgency_tag", "⚠️ REVIEW SUGGESTED")
+        urgency_tag    = analysis.get("urgency_tag", "REVIEW SUGGESTED")
         header_insight = analysis.get("header_insight", f"Review {vendor} approval of ₹{amount:,.0f}.")
         options        = analysis.get("options", [])
         confidence     = analysis.get("confidence", 70)
@@ -391,7 +391,7 @@ class GhostApproverAgent(BaseAgent):
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"👻 KARMA Ghost Approver  {urgency_tag}",
+                    "text": f"KARMA Ghost Approver  {urgency_tag}",
                     "emoji": True,
                 },
             },

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { RefreshCw, CheckCircle, Clock, AlertTriangle, ShieldAlert, Database, Cloud, CreditCard } from 'lucide-react';
+import { RefreshCw, CheckCircle, Clock, AlertTriangle, Database, Cloud, CreditCard } from 'lucide-react';
 
 const CATEGORY_ICONS: Record<string, any> = {
   CRM:       CreditCard,

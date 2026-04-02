@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api } from '../api';
-import { Send, Zap, Loader, CheckCircle, ShieldCheck, BarChart2, Bot } from 'lucide-react';
+import { Send, Zap, CheckCircle, ShieldCheck, BarChart2, Bot } from 'lucide-react';
 
 function Spinner() {
   return <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(213,255,187,0.4)', borderTopColor: '#d5ffbb', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />;
@@ -187,7 +187,9 @@ export default function GhostApproverSim() {
 
                   {/* Name */}
                   <div>
-                    <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: isRec ? '1.35rem' : '1.05rem', color: isRec ? '#ffffff' : '#1a1e2e', letterSpacing: '-0.03em', lineHeight: 1.15, marginBottom: '0.5rem' }}>{opt.label}</div>
+                    <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 900, fontSize: isRec ? '1.35rem' : '1.05rem', color: isRec ? '#ffffff' : '#1a1e2e', letterSpacing: '-0.03em', lineHeight: 1.15, marginBottom: '0.5rem' }}>
+                      {opt.label.replace(/^[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim()}
+                    </div>
                     {opt.savings_inr > 0 && isRec && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'rgba(255,255,255,0.15)', color: '#d5ffbb', borderRadius: 999, padding: '0.15rem 0.6rem', fontSize: '0.68rem', fontWeight: 700, fontFamily: 'Inter,sans-serif' }}>
                         SAVINGS MATH-VERIFIED
