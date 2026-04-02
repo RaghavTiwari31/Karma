@@ -156,6 +156,10 @@ class DecisionDNAAgent(BaseAgent):
                 "cost_impact_inr":     amt,
                 "karma_intervention":  intervention,
                 "intervention_timing": "Real-time" if vis == "blind" else "N/A",
+                "historical_paths_count": 2400 if i == 1 else 1250,
+                "historical_confidence_rating": "High" if vis == "informed" else "Medium",
+                "sla_impact_pct": round(abs(amt) / 500000.0, 2) + 0.01,
+                "sla_impact_msg": "Latency buffer intact" if abs(amt) < 20000 else "Approaching threshold",
             })
 
         root_cause_event = next(

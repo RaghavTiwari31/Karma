@@ -30,6 +30,12 @@ function PodiumCard({ team, pos, teamAvgSaved }: { team: any; pos: 1 | 2 | 3; te
   const bgColors = ['#9b8ecf', '#3b5bdb', '#1a7a8a', '#c04a4a', '#5cb85c'];
   const avatarBg = bgColors[Math.abs(team?.team_id?.charCodeAt(0) || 0) % bgColors.length];
 
+  let borderStyle = '1px solid #eceef6';
+  let boxShad = '0 2px 10px rgba(30,33,43,0.06)';
+  if (pos === 1) { borderStyle = `2px solid #fec700`; boxShad = '0 8px 28px rgba(254,199,0,0.28)'; }
+  else if (pos === 2) { borderStyle = `2px solid #b3b8d1`; boxShad = '0 8px 28px rgba(179,184,209,0.35)'; }
+  else if (pos === 3) { borderStyle = `2px solid #e0ad7b`; boxShad = '0 8px 28px rgba(224,173,123,0.35)'; }
+
   return (
     <div style={{
       background: '#ffffff',
@@ -38,8 +44,8 @@ function PodiumCard({ team, pos, teamAvgSaved }: { team: any; pos: 1 | 2 | 3; te
       textAlign: 'center',
       flex: 1,
       maxWidth: isChamp ? 260 : 200,
-      border: isChamp ? '2px solid #fec700' : '1px solid #eceef6',
-      boxShadow: isChamp ? '0 8px 28px rgba(254,199,0,0.25)' : '0 2px 10px rgba(30,33,43,0.06)',
+      border: borderStyle,
+      boxShadow: boxShad,
       position: 'relative',
       marginTop: isChamp ? 0 : 24,
       transition: 'transform 0.2s',
@@ -291,9 +297,8 @@ export default function KarmaLeaderboard() {
           </div>
 
           {/* Karma Insight */}
-          <div style={{ background: '#ffffff', borderRadius: '0.875rem', border: '3px solid #004ac2', overflow: 'hidden' }}>
+          <div style={{ background: '#ffffff', borderRadius: '0.875rem', border: '3px solid #004ac2', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0, 74, 194, 0.25)' }}>
             <div style={{ background: '#004ac2', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-              <img src="/insight-icon.png" alt="Insight Icon" style={{ width: 22, height: 22, objectFit: 'contain' }} />
               <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#ffffff' }}>Karma Insight</div>
             </div>
             <div style={{ padding: '0.875rem 1rem' }}>

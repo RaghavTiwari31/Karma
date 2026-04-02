@@ -13,7 +13,7 @@ function categoryIcon(cat: string) {
   return <Icon size={18} />;
 }
 
-type FilterTab = 'ALL' | 'EXPIRING' | 'BREACHES';
+type FilterTab = 'ALL' | 'EXPIRING' | 'BREACHES' | 'MEDIUM';
 
 export default function WasteCalendar() {
   const [data, setData]       = useState<any>(null);
@@ -54,12 +54,15 @@ export default function WasteCalendar() {
   const events     = data?.events || [];
   const totalRisk  = events.filter((e: any) => e.status === 'open').reduce((s: number, e: any) => s + (e.estimated_savings_inr || 0), 0);
   const resolved   = events.filter((e: any) => e.status === 'done').length;
-  const expiring   = events.filter((e: any) => e.status === 'open' && e.urgency_label?.includes('HIGH')).length;
+  const expiring   = events.filter((e: any) => e.status === 'open' && e.urgency_label?.toUpperCase().includes('CRITICAL')).length;
 
   const filteredEvents = events.filter((ev: any) => {
+    const label = (ev.urgency_label || '').toUpperCase();
+    const cat = (ev.category || '').toUpperCase();
     if (filter === 'ALL')      return true;
-    if (filter === 'EXPIRING') return ev.urgency_label?.includes('HIGH') || ev.urgency_label?.includes('CRITICAL');
-    if (filter === 'BREACHES') return ev.urgency_label?.includes('CRITICAL') || ev.category?.toLowerCase().includes('sla');
+    if (filter === 'EXPIRING') return label.includes('CRITICAL');
+    if (filter === 'BREACHES') return label.includes('HIGH') || cat.includes('SLA');
+    if (filter === 'MEDIUM')   return label.includes('MEDIUM');
     return true;
   });
 
@@ -67,10 +70,12 @@ export default function WasteCalendar() {
   const topRemediationItem = events.find((e: any) => e.status === 'open');
 
   const urgencyBadge = (label: string, status: string) => {
+    const upLabel = (label || '').toUpperCase();
     if (status === 'done')               return { text: 'RESOLVED', bg: '#eaf3e6', color: '#2d6a14', border: '#a8d68a' };
-    if (label?.includes('CRITICAL'))     return { text: 'EXPIRING', bg: '#fef2f2', color: '#ef4444', border: '#fca5a5' };
-    if (label?.includes('HIGH'))         return { text: 'BREACH-RISK', bg: '#fffbeb', color: '#d97706', border: '#fcd34d' };
-    return { text: label || 'NORMAL', bg: '#f0f2f8', color: '#6b6f82', border: '#d0d4e8' };
+    if (upLabel.includes('CRITICAL'))    return { text: 'EXPIRING', bg: '#fef2f2', color: '#ef4444', border: '#fca5a5' };
+    if (upLabel.includes('HIGH'))        return { text: 'BREACH-RISK', bg: '#fffbeb', color: '#d97706', border: '#fcd34d' };
+    if (upLabel.includes('MEDIUM'))      return { text: 'MEDIUM RISK', bg: '#f0f9ff', color: '#0284c7', border: '#bae6fd' };
+    return { text: upLabel || 'NORMAL', bg: '#f0f2f8', color: '#6b6f82', border: '#d0d4e8' };
   };
 
   return (
@@ -144,7 +149,7 @@ export default function WasteCalendar() {
           <h2 style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.05rem', color: '#1a1e2e', margin: 0 }}>Prioritized Risk Matrix</h2>
           {/* Filter tabs */}
           <div style={{ display: 'flex', background: '#f0f2f8', borderRadius: '0.5rem', padding: '0.2rem' }}>
-            {(['ALL', 'EXPIRING', 'BREACHES'] as FilterTab[]).map(tab => (
+            {(['ALL', 'EXPIRING', 'BREACHES', 'MEDIUM'] as FilterTab[]).map(tab => (
               <button key={tab} onClick={() => setFilter(tab)} style={{ fontFamily: 'Inter,sans-serif', fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.06em', padding: '0.3rem 0.75rem', borderRadius: '0.375rem', border: 'none', cursor: 'pointer', transition: 'background 0.15s, color 0.15s', background: filter === tab ? '#ffffff' : 'transparent', color: filter === tab ? '#1a1e2e' : '#8b8fa8', boxShadow: filter === tab ? '0 1px 4px rgba(30,33,43,0.10)' : 'none' }}>
                 {tab}
               </button>
