@@ -42,6 +42,12 @@ export default function DecisionDNA() {
   const vendorLabel = item ? `${item.actor || item.vendor || 'AWS Production'} ${item.category || 'Environment'}` : 'AWS Production Cluster-04';
   const aiSuggestion = item?.karma_intervention || item?.karma_fix_annotation || 'Automated Spot-Migration: Reduce reserved capacity by 42%';
   const humanBaseline = item?.action || item?.decision_taken || 'Standard On-Demand approval without utilisation analysis';
+  const aiStrategyName = item?.karma_intervention ? (item.context_visibility === 'blind' ? 'Real-Time Block' : 'Cost Enforcement') : 'Automated Action';
+  const aiInsightText = item?.missing_context?.length ? `KARMA would have explicitly shown: ${item.missing_context.join(', ')}.` : (item?.context_human_missed?.[0] || `Cost and utilization tracking enabled to improve DNA confidence to 99.2%.`);
+  const humanMethodName = item?.context_visibility === 'blind' ? 'Blind Execution' : (item?.context_visibility === 'partial' ? 'Partial Check' : 'Standard Routine');
+  const humanInsightText = item?.note || `Standard manual approval process exposes the system to severe cost leakage during active traffic spikes.`;
+  const aiSpeed = item?.intervention_timing || 'Instant';
+  const costImpactPct = item?.cost_impact_inr ? `${item.cost_impact_inr < 0 ? '' : '+'}${(item.cost_impact_inr / 5000).toFixed(1)}%` : '-42.8%';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 1200, margin: '0 auto', width: '100%', animation: 'fade-in 0.4s ease-out both' }}>
@@ -147,7 +153,7 @@ export default function DecisionDNA() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
                 <div>
                   <div style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.62rem', fontWeight: 800, color: '#4a8a30', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>STRATEGY ARCHITECTURE</div>
-                  <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.35rem', color: '#1a1e2e', lineHeight: 1.25 }} title={aiSuggestion}>Automated Spot-<br/>Migration</div>
+                  <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.35rem', color: '#1a1e2e', lineHeight: 1.25 }} title={aiSuggestion}>{aiStrategyName}</div>
                 </div>
                 <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: '#d5ffbb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Zap size={22} color="#2d6a14" fill="#2d6a14" />
@@ -158,7 +164,7 @@ export default function DecisionDNA() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8faf9', padding: '0.875rem 1rem', borderRadius: '0.5rem' }}>
                   <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: '0.8rem', color: '#6b6f82' }}>Cost Efficiency</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#1a1e2e' }}>-42.8%</span>
+                    <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#1a1e2e' }}>{costImpactPct}</span>
                     <span style={{ background: '#eaf3e6', color: '#2d6a14', borderRadius: 999, padding: '0.15rem 0.5rem', fontFamily: 'Inter,sans-serif', fontSize: '0.65rem', fontWeight: 700 }}>Optimal</span>
                   </div>
                 </div>
@@ -166,7 +172,7 @@ export default function DecisionDNA() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8faf9', padding: '0.875rem 1rem', borderRadius: '0.5rem' }}>
                   <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 600, fontSize: '0.8rem', color: '#6b6f82' }}>Execution Speed</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#1a1e2e' }}>Instant</span>
+                    <span style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#1a1e2e' }}>{aiSpeed}</span>
                     <span style={{ color: '#8b8fa8', fontFamily: 'Inter,sans-serif', fontSize: '0.65rem', fontWeight: 600 }}>0 ms latency</span>
                   </div>
                 </div>
@@ -193,7 +199,7 @@ export default function DecisionDNA() {
               </div>
               <div style={{ padding: '0.75rem 1rem' }}>
                 <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.75rem', color: '#6b6f82', lineHeight: 1.5, margin: 0 }}>
-                  {item?.context_human_missed?.[0] ? item.context_human_missed[0] : `Moving to t3.large nodes would improve DNA confidence to 99.2% due to higher historical uptime in us-east-1.`}
+                  {aiInsightText}
                 </p>
               </div>
             </div>
@@ -206,7 +212,7 @@ export default function DecisionDNA() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
                 <div>
                   <div style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.62rem', fontWeight: 800, color: '#0284c7', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>CURRENT METHOD</div>
-                  <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.35rem', color: '#1a1e2e', lineHeight: 1.25 }} title={humanBaseline}>Standard On-<br/>Demand</div>
+                  <div style={{ fontFamily: 'Manrope,sans-serif', fontWeight: 800, fontSize: '1.35rem', color: '#1a1e2e', lineHeight: 1.25 }} title={humanBaseline}>{humanMethodName}</div>
                 </div>
                 <div style={{ width: 44, height: 44, borderRadius: '0.75rem', background: '#bae6fd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="#0284c7"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
@@ -242,7 +248,7 @@ export default function DecisionDNA() {
               </div>
               <div style={{ padding: '0.75rem 1rem' }}>
                 <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '0.75rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
-                  Standard manual approval process is bottlenecking deployments by over 2.4 hours consistently, exposing the system to severe cost leakage during active traffic spikes.
+                  {humanInsightText}
                 </p>
               </div>
             </div>
