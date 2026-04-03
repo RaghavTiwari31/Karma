@@ -17,6 +17,21 @@ KARMA is a multi-agent AI system designed to eliminate enterprise waste autonomo
 
 ---
 
+## 📺 Video Demo
+
+<!-- 
+REPLACE THE LINK BELOW WITH YOUR ACTUAL VIDEO LINK 
+The syntax below uses a clickable image to simulate a video embed.
+You can also use a direct video tag if you prefer:
+<video src="video_url.mp4" controls width="100%"></video>
+-->
+
+[![KARMA Demo Video](https://img.placeholder.com/800x450/2563eb/ffffff?text=Click+to+Watch+KARMA+Demo)](https://your-video-link-here.com)
+
+*Watch how KARMA autonomously identifies and eliminates enterprise waste.*
+
+---
+
 ## Technical Stack
 
 - **Frontend:** React 18, TypeScript, Vite, TailwindCSS, Recharts, Lucide Icons
