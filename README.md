@@ -5,8 +5,6 @@
 
 KARMA is a multi-agent AI system designed to eliminate enterprise waste autonomously. By plugging into your existing ERP, CRM, and communication tools (SAP, Salesforce, Slack, AWS), KARMA monitors software utilization, vendor contracts, and SLA metrics in real-time. When it detects waste or risk, it doesn't just send a dashboard alert—it intercepts the purchasing workflow, proposes renegotiated contracts, resizes cloud instances, and routes actionable savings directly to decision-makers.
 
-![KARMA Dashboard](./frontend/public/favicon.ico) *A completely functional web app demonstrating the engine!*
-
 ## Features 🚀
 
 - **Ghost Approver (Interception Agent):** Intervenes before money is spent. It reads an incoming approval request, enriches it with utilization and alternatives, and presents the approver with Gemini-powered cost-saving alternatives directly via Slack-style blocks.
@@ -19,14 +17,7 @@ KARMA is a multi-agent AI system designed to eliminate enterprise waste autonomo
 
 ## 📺 Video Demo
 
-<!-- 
-REPLACE THE LINK BELOW WITH YOUR ACTUAL VIDEO LINK 
-The syntax below uses a clickable image to simulate a video embed.
-You can also use a direct video tag if you prefer:
-<video src="video_url.mp4" controls width="100%"></video>
--->
-
-[![KARMA Demo Video](https://img.placeholder.com/800x450/2563eb/ffffff?text=Click+to+Watch+KARMA+Demo)](https://your-video-link-here.com)
+https://github.com/user-attachments/assets/f86403b5-b9cc-47af-b7eb-86efb3485f5c
 
 *Watch how KARMA autonomously identifies and eliminates enterprise waste.*
 
